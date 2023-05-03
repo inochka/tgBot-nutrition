@@ -20,10 +20,17 @@ def welcome(message):
     bot.send_message(message.chat.id, "Смотри, что я умею:")
     # нужно создать файл со списком комманд
 
+
 @bot.message_handler(commands=["add_word"])
-def add_word(message):
+def add_word_request_data(message):
     bot.send_message(message.chat.id, "Введите слово:")
-    
+    bot.register_next_step_handler(message, add_word_create)
+
+
+def add_word_create(message):
+    bot.send_message(message.chat.id," Вы успешно ввели слово")
+
+# надо бы все через ооп переписать енто попробовать
 
 @bot.message_handler(content_types=["text"])
 def answer(message):
