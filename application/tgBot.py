@@ -105,9 +105,7 @@ class Bot:
             else:
                 self.bot.send_message(message.chat.id, self.meal_ouptut_format)
                 for row in data:
-                    attrs = getmembers(row, lambda a: a != "pk")
-                    print(attrs)
-                    output += " ".join([attrs[i][1] for i in range(len(attrs))]) + "\n"
+                    output += " ".join([getattr(row, field) for field in self.meal_fields.keys()]) + "\n"
 
                 self.bot.send_message(message.chat.id, output)
 
