@@ -4,20 +4,23 @@ from datetime import datetime
 
 
 class Meal():
-    dt: datetime
-    # date and time of meal
+
     pk: int = 0
     # primary key
-    name: str = 0
+    name: str = ""
     # name
 
     # calories, lipids, carbohydrates, proteins
+    # порядок согласован со строкой формата в классе Bot
     cals: int = 0
+    proteins: int = 0
     lipids: int = 0
     carbs: int = 0
-    proteins: int = 0
 
-    def __init__(self, pk, dt=datetime.now(), cals=0, lipids=0, carbs=0, proteins=0):
+    dt: datetime
+    # date and time of meal
+
+    def __init__(self, pk = 0, dt=datetime.now(), cals=0, lipids=0, carbs=0, proteins=0):
         self.pk = pk
         self.dt = dt
         self.cals = cals
@@ -31,6 +34,7 @@ class Norm():
     # даты начала и конца периода, в течение которых действует данная норма
     dt_start: datetime.date
     dt_end: datetime.date
+    pk: int = 0
 
     # также у нас будет словарь, ключи в котором - названия параметров
     # а значения - списки из нижнего и верхнего порогов
@@ -43,7 +47,7 @@ class Norm():
         self.admissible_vals = adm_vals
 
 
-print(Meal(pk=1, cals = 80))
+#print(Meal(cals=80))
 
 
 
