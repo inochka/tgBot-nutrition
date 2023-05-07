@@ -8,6 +8,7 @@ import config
 
 meal_repo = MemoryRepository()
 norm_repo = MemoryRepository()
+# возможно, их правильнее создавать по команде start
 
 # создаем тг-бота
 

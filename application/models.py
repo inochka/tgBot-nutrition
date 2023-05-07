@@ -32,8 +32,8 @@ class Meal():
 class Norm():
 
     # даты начала и конца периода, в течение которых действует данная норма
-    dt_start: datetime.date
-    dt_end: datetime.date
+    #dt_start: datetime.date
+    #dt_end: datetime.date
     pk: int = 0
 
     # также у нас будет словарь, ключи в котором - названия параметров
@@ -41,9 +41,9 @@ class Norm():
 
     admissible_vals: dict[str, list]
 
-    def __init__(self, dt_start: datetime.date, dt_end: datetime.date, adm_vals: dict[str, list]):
-        self.dt_start = dt_start
-        self.dt_end = dt_end
+    def __init__(self, adm_vals: dict[str, list]):
+        #self.dt_start = dt_start
+        #self.dt_end = dt_end
         self.admissible_vals = adm_vals
 
 
