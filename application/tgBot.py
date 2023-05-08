@@ -263,10 +263,6 @@ class Bot:
         def stats(message):
             pass
 
-        @self.bot.message_handler(content_types=["text"])
-        def answer(message):
-            self.bot.send_message(message.chat.id, message.text)
-
     def send_table(self, message, headers, data):
         # headers - list of strings-names
         table = pt.PrettyTable(headers)
