@@ -4,15 +4,8 @@ from application.repository.abstract_repository import AbstractRepository
 from application.models import Meal, Norm
 from inspect import get_annotations
 from keyboa import Keyboa
-
-"""
-import telepot
-token = '6226679318:AAHypKT7bQFLgkwpK7gfcZ4W0WI1TvgzaYc'
-TelegramBot = telebot.Bot(token)
-print(TelegramBot.getMe())
-print(TelegramBot.getUpdates()[0])
-"""
-
+import prettytable as pt
+from datetime import datetime
 
 class Bot:
     TOKEN: str
@@ -26,7 +19,7 @@ class Bot:
     # список допустимых команд
     commands = {"start": "Начать взаимодействие",
                 #"end": "Закончить взаимодействие",
-                "help": "Помощь",
+                "bot_help": "Помощь",
                 "meal_add": "Добавить прием пищи",
                 "meal_delete": "Удалить прием пищи",
                 #"meal_edit": "Редактировать прием пищи",
@@ -38,13 +31,22 @@ class Bot:
                 "keyboard": "Вывести виртуальную клавиатуру"
                 }
 
+
+
     def __init__(self, TOKEN, meal_repo, norm_repo):
         self.token = TOKEN
-        self.bot = telebot.TeleBot(self.token)
+        # сразу же парсим в хтмл, чтобы было проще
+        self.bot = telebot.TeleBot(self.token, parse_mode="HTML")
         self.meal_repo = meal_repo
         self.norm_repo = norm_repo
-        self.meal_ouptut_format = "Блюдо Калории Белки Жиры Углеводы Дата(мм-дд-гг)"
-        self.norm_ouptut_format = "КалорииMin-КалорииMax \nБелкиMin-БелкиMax\nЖирыMin-ЖирыMax\nУглеводыMin-УглеводыMax"
+        self.meal_output_format = ["N0", "Блюдо", "Калории", "Белки", "Жиры", "Углеводы", "Дата(дд-мм-гг)"]
+        self.norm_output_format = ["N0", "Калории Min-Max", "Белки Min-Max", "Жиры Min-Max", "Углеводы Min-Max"]
+
+        self.meal_help_string = "<b>Пример ввода приема пищи:</b>\n\n" + " ".join(self.meal_output_format[1:]) +\
+                                "\nБиг-мак 200 10 10 10 06-05-2023"
+        self.norm_help_string = "<b>Пример ввода нормы БЖУ:</b>\n\n" +"\n".join(self.norm_output_format[1:]) +\
+                                "\n\n2000-2500\n120-180\n20-50\n200-300"
+
         # порядок вывода для блюд
 
         # заполняем поля
@@ -54,15 +56,21 @@ class Bot:
         self.norm_fields = get_annotations(Norm, eval_str=True)
         #self.norm_fields.pop('pk')
 
+           # считаем из файла более длинное текстовое описание
+
+        with open('help.txt', 'r', encoding='utf-8') as f:
+            self.general_help_string = f.read()
+            #print(self.general_help_string)
+            f.close()
+
         @self.bot.message_handler(commands=["start"])
         # в перспективе можно для каждого юзера сделать свою ветку/таблицу бд
         # тогда нужно создавать/открывать бд по команде старт
         # и удалять по команде енд
-
         #####     инициализация работы     ###################
         def welcome(message):
-            self.bot.send_message(message.chat.id, f"Добро пожаловать, {message.from_user.first_name}!")
-            self.bot.send_message(message.chat.id, "Введи команду /help, если потребуется помощь!\n")
+            self.bot.send_message(message.chat.id, f"Добро пожаловать, {message.from_user.first_name}!\n" +
+                                  "Введи команду /help, если потребуется помощь!\n")
             # виртуальная клавиатура
             make_keyboard(message)
 
@@ -74,26 +82,30 @@ class Bot:
                     ["Помощь", "Статистика"]]
             keyboard = Keyboa(items=menu)
             self.bot.send_message(chat_id=message.chat.id, text="Выберите нужное действие", reply_markup=keyboard())
-            self.bot.send_message(chat_id=message.chat.id, text="Здесь ПП - прием пищи, а норма - суточная норма калорий и БЖУ")
+            self.bot.send_message(chat_id=message.chat.id, text="Здесь ПП - прием пищи, а норма - "
+                                                                "суточная норма калорий и БЖУ")
 
         # обработчик нажатий на клавиатуру
         @self.bot.callback_query_handler(func=lambda call: True)
-        def send_text(call):
+        def handle_keyboard(call):
             actions = {"Добавить ПП": meal_add_request_data, "Удалить ПП": meal_delete_request_data,
                        "Вывести ПП": meals_show, "Добавить норму": norm_add_request_data,
                        "Удалить норму": norm_delete_request_data, "Вывести нормы": norms_show,
-                       "Помощь": help, "Статистика": statistics}
+                       "Помощь": bot_help, "Статистика": stats}
+            # была охуевшая ошибка из-за того, что команда help дублировалась аналогичной комадной бота
             if call.data in actions.keys():
+                # вызываем функции по имени в зависимости от введенной команды
                 actions[call.data](call.message)
 
-
-
-        @self.bot.message_handler(commands=["help"])
-        def help(message):
-            self.bot.send_message(message.chat.id, "Смотри, что я умею:")
-            msg = ""
+        @self.bot.message_handler(commands=["bot_help"])
+        def bot_help(message):
+            self.bot.send_message(message.chat.id, "<b> Список команд </b>Смотри, что я умею:")
+            msg = self.general_help_string + "\n\n"
+            #print(1)
             for key in self.commands.keys():
                 msg += f"/{key}: {self.commands[key]}\n"
+
+            msg += "\n\n" + self.meal_help_string + "\n\n" + self.norm_help_string
 
             self.bot.send_message(message.chat.id, msg)
 
@@ -104,14 +116,15 @@ class Bot:
         @self.bot.message_handler(commands=["meal_add"])
         def meal_add_request_data(message):
             self.bot.send_message(message.chat.id, "Введите данные о приеме пищи в формате:\n" +
-                                  self.meal_ouptut_format)
+                                  " ".join(self.meal_output_format[1:]))
+            # номер сами не вводим, он генерится автоматически
             self.bot.register_next_step_handler(message, meal_add)
             # в перспективе сделать ввод данных опциональным, с предустановленным сегодняшним днем
 
         def meal_add(message):
             try:
                 meal_data = message.text.split(" ")
-                print(meal_data)
+                #print(meal_data)
                 new_meal = Meal()
                 # !!! добавить проверку на ошибки при вводе сюда!!
 
@@ -152,7 +165,10 @@ class Bot:
         def meals_show(message):
             # нужно будет здесь побольше функционала и выборов добавить
             data = meal_repo.get_all()
-            output = ""
+            # сортируем по дате: от более нового к более старому
+            data.sort(key=lambda meal: datetime.strptime(meal.dt, "%d-%m-%Y"), reverse=True)
+
+
 
             if not data:
                 self.bot.send_message(message.chat.id, "Извините, записей о вашем питании не найдено.")
@@ -161,25 +177,30 @@ class Bot:
                 # в дальнейшем по дате мб можно будет настроить выборку, но пока забьем
                 bound = 20
                 i = 0
-                self.bot.send_message(message.chat.id, self.meal_ouptut_format)
-                date = ""
+                output_data = []
+
+                dt = data[0].dt
+
                 for row in data:
+                    # если дата поменялась, делаем отступ в одну строчку в таблице
+                    if row.dt != dt:
+                        output_data.append([" "] * (len(list(self.meal_fields.keys())) + 1))
+                    dt = row.dt
+
                     if i >= bound:
                         break
+
                     i += 1
+                    output_data.append([str(row.pk)] + [getattr(row, field) for field in self.meal_fields.keys()])
 
-                    output += str(row.pk) + " " + " ".join([getattr(row, field) for field in self.meal_fields.keys()]) + "\n"
-
-                    date = row.dt
-
-                self.bot.send_message(message.chat.id, output)
+                self.send_table(message, self.meal_output_format, output_data)
 
         #####     данные о нормах калоража     ###################
 
         @self.bot.message_handler(commands=["norm_add"])
         def norm_add_request_data(message):
-            self.bot.send_message(message.chat.id, "Введите данные о суточной норме БЖУ в формате:\n" +
-                                  self.norm_ouptut_format)
+            self.bot.send_message(message.chat.id, "Введите данные о суточной норме БЖУ в формате:\n\n" +
+                                  "\n".join(self.norm_output_format[1:]))
             self.bot.register_next_step_handler(message, norm_add)
             # в перспективе сделать ввод данных опциональным, с предустановленным сегодняшним днем
 
@@ -210,19 +231,16 @@ class Bot:
                 # зададим также максимальное количество выводимых записей
                 bound = 20
                 i = 0
-                # заменяем переносы строки на табуляции для удобства
-                self.bot.send_message(message.chat.id, "Калории\tБелки\tЖиры\tУглеводы")
-                date = ""
+                output_data = []
                 for row in data:
                     if i >= bound:
                         break
                     i += 1
-                    vals = [str(field[0]) + " - " + str(field[1]) for field in row.admissible_vals.values()]
-                    #print(vals)
+                    output_data.append([str(row.pk)] +
+                                       [str(field[0]) + " - " + str(field[1]) for field in row.admissible_vals.values()])
 
-                    output += str(row.pk) + "\t" + "\t".join(vals) + "\n"
 
-                self.bot.send_message(message.chat.id, output)
+                self.send_table(message, self.norm_output_format, output_data)
 
         @self.bot.message_handler(commands=["norm_delete"])
         def norm_delete_request_data(message):
@@ -244,12 +262,24 @@ class Bot:
             except:
                 self.bot.send_message(message.chat.id, "При удалении данных о норме БЖУ возникла ошибка!")
 
-        @self.bot.message_handler(commands=["statistics"])
-        def statistics(message):
+        @self.bot.message_handler(commands=["stats"])
+        def stats(message):
             pass
         @self.bot.message_handler(content_types=["text"])
         def answer(message):
             self.bot.send_message(message.chat.id, message.text)
+
+    def send_table(self, message, headers, data):
+        # headers - list of strings-names
+        table = pt.PrettyTable(headers)
+        for header in headers:
+            table.align[header] = "c"
+
+        for row in data:
+            # row is a list of strings
+            table.add_row(row)
+
+        self.bot.send_message(message.chat.id, f'<pre>{table}</pre>')
 
     def run(self):
         self.bot.polling(none_stop=True)
