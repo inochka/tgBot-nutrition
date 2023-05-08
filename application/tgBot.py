@@ -7,6 +7,7 @@ from keyboa import Keyboa
 import prettytable as pt
 from datetime import datetime
 
+
 class Bot:
     TOKEN: str
     bot: telebot.TeleBot
@@ -22,7 +23,6 @@ class Bot:
                 "bot_help": "Помощь",
                 "meal_add": "Добавить прием пищи",
                 "meal_delete": "Удалить прием пищи",
-                #"meal_edit": "Редактировать прием пищи",
                 "meals_show": "Вывести последние 20 приемов пищи",
                 "norm_add": "Добавить норму БЖУ",
                 "norm_delete": "Удалить норму БЖУ",
@@ -163,7 +163,6 @@ class Bot:
 
         @self.bot.message_handler(commands=["meals_show"])
         def meals_show(message):
-            # нужно будет здесь побольше функционала и выборов добавить
             data = meal_repo.get_all()
             # сортируем по дате: от более нового к более старому
             data.sort(key=lambda meal: datetime.strptime(meal.dt, "%d-%m-%Y"), reverse=True)
@@ -239,7 +238,6 @@ class Bot:
                     output_data.append([str(row.pk)] +
                                        [str(field[0]) + " - " + str(field[1]) for field in row.admissible_vals.values()])
 
-
                 self.send_table(message, self.norm_output_format, output_data)
 
         @self.bot.message_handler(commands=["norm_delete"])
@@ -255,7 +253,6 @@ class Bot:
                 if norm_pk < 0:
                     raise (ValueError, "Введите корректную информацию!")
 
-                #deleting_data = meal_repo.get(norm_pk)
                 self.norm_repo.delete(norm_pk)
                 # нужно дописать
                 self.bot.send_message(message.chat.id, "Вы успешно удалили данные о норме БЖУ")
@@ -265,6 +262,7 @@ class Bot:
         @self.bot.message_handler(commands=["stats"])
         def stats(message):
             pass
+
         @self.bot.message_handler(content_types=["text"])
         def answer(message):
             self.bot.send_message(message.chat.id, message.text)
