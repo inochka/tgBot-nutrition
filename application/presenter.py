@@ -6,6 +6,7 @@ import config
 
 # создаем бд
 
+# репозиторий в ОП нужен для тестирования, оставим на всякий это здесь
 #meal_repo = MemoryRepository()
 #norm_repo = MemoryRepository()
 

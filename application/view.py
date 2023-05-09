@@ -6,6 +6,7 @@ from inspect import get_annotations
 from keyboa import Keyboa
 import prettytable as pt
 from datetime import datetime
+import re
 
 
 class Bot:
@@ -97,6 +98,10 @@ class Bot:
             # была охуевшая ошибка из-за того, что команда help дублировалась аналогичной комадной бота
             if call.data in actions.keys():
                 # вызываем функции по имени в зависимости от введенной команды
+                message1 = call.message
+                message1.from_user.id = call.message.chat.id
+                # шоб работало, нам нужно заменить ид бота (от которого отправлен call) на id пользоваателя
+                # который совпадает с id чата, видимо
                 actions[call.data](call.message)
 
         @self.bot.message_handler(commands=["bot_help"])
@@ -123,7 +128,17 @@ class Bot:
 
         def meal_add(message):
             try:
+                # проверяем ввод через рег выражение
+                pattern = r"[a-яА-Я\w\s]+ \d+ \d+ \d+ \d+ (?=\d{2}([-])\d{2}\1\d{4}$)(?:0[1-9]|1\d|[2][0-8]|29(?!.02." \
+                          r"(?!(?!(?:[02468][1-35-79]|[13579][0-13-57-9])00)\d{2}(?:[02468][048]|[13579][26])))|" \
+                          r"30(?!.02)|31(?=.(?:0[13578]|10|12))).(?:0[1-9]|1[012])[-]\d{4}$"
+
+                if not re.match(pattern, message.text):
+                    self.bot.send_message(message.chat.id, "Введите корректную информацию!")
+                    raise ValueError
+
                 meal_data = message.text.split(" ")
+
                 #print(meal_data)
                 # руками добавляем id юзера, добавившего запись
                 new_meal = Meal(user=str(message.from_user.id))
@@ -132,6 +147,7 @@ class Bot:
                 i = 0
 
                 if len(meal_data) != len(self.meal_fields):
+                    self.bot.send_message(message.chat.id, "Не все позиции заполнены!")
                     raise (ValueError, "Не все позиции заполнены!")
 
                 for field in self.meal_fields.keys():
@@ -169,8 +185,6 @@ class Bot:
             # сортируем по дате: от более нового к более старому
             data.sort(key=lambda meal: datetime.strptime(meal.dt, "%d-%m-%Y"), reverse=True)
 
-
-
             if not data:
                 self.bot.send_message(message.chat.id, "Извините, записей о вашем питании не найдено.")
             else:
@@ -207,6 +221,11 @@ class Bot:
 
         def norm_add(message):
             try:
+                # проверяем ввод посредством регулярных выражений
+                pattern = r"\d+-\d+\n\d+-\d+\n\d+-\d+\n\d+-\d+"
+                if not re.match(pattern, message.text):
+                    self.bot.send_message(message.chat.id, "Введите корректную информацию!")
+                    raise ValueError
                 norm_data = message.text.split("\n")
                 admissible_vals = {}
                 i = 0
