@@ -1,6 +1,6 @@
 from inspect import get_annotations
 import sqlite3
-from abstract_repository import AbstractRepository, T
+from application.repository.abstract_repository import AbstractRepository, T
 from application.models import Meal
 from application.models import Norm
 from typing import Any
@@ -38,11 +38,11 @@ class SQLiteRepository(AbstractRepository[T]):
         names = ', '.join(self.fields.keys())
         p = ', '.join("?" * len(self.fields))
         values = [getattr(obj, x) for x in self.fields]
-
+        # all attrs have to be strings or numbers
         with sqlite3.connect(self.db_file) as con:
             cur = con.cursor()
-            cur.execute("PRAGMA foreign_keys = ON")
-            cur.execute(f'INSERT INTO {self.table_name} ({names}) VALUES({p})', values)
+            #cur.execute("PRAGMA foreign_keys = ON")
+            cur.execute(f'INSERT INTO {self.table_name} ({names}) VALUES ({p})', values)
             obj.pk = cur.lastrowid
 
         con.close()

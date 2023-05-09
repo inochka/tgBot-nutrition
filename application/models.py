@@ -3,12 +3,15 @@ from datetime import datetime
 # нам нужны модели отдельного приема пищи и модели норм питания
 
 
-class Meal():
+class Meal:
 
     pk: int = 0
     # primary key
     name: str = ""
     # name
+
+    # telegram used id
+    user: str
 
     # calories, lipids, carbohydrates, proteins
     # порядок согласован со строкой формата в классе Bot
@@ -20,32 +23,50 @@ class Meal():
     dt: datetime
     # date and time of meal
 
-    def __init__(self, pk = 0, dt=datetime.now(), cals=0, lipids=0, carbs=0, proteins=0):
+    def __init__(self, user, name="", pk=0, dt=datetime.now(), cals=0, lipids=0, carbs=0, proteins=0):
         self.pk = pk
         self.dt = dt
         self.cals = cals
         self.lipids = lipids
         self.carbs = carbs
         self.proteins = proteins
+        self.user = user
+        self.name = name
 
 
-class Norm():
+class Norm:
 
     # даты начала и конца периода, в течение которых действует данная норма
     #dt_start: datetime.date
     #dt_end: datetime.date
     pk: int = 0
 
+    # telegram used id
+    user: str
+
     # также у нас будет словарь, ключи в котором - названия параметров
     # а значения - списки из нижнего и верхнего порогов
 
-    admissible_vals: dict[str, list]
+    #admissible_vals: dict[str, list]
 
-    def __init__(self, adm_vals: dict[str, list]):
+    cals: str
+    proteins: str
+    lipids: str
+    carbs: str
+
+    # нужно переписать и заменить на строки формата мин-мах, так проще всего
+    # будет работать с бд
+
+    def __init__(self, user, cals, proteins, lipids, carbs, pk=0):
         #self.dt_start = dt_start
         #self.dt_end = dt_end
-        self.admissible_vals = adm_vals
-
+        #self.admissible_vals = adm_vals
+        self.cals = cals
+        self.proteins = proteins
+        self. lipids = lipids
+        self.carbs = carbs
+        self.user = user
+        self.pk = pk
 
 #print(Meal(cals=80))
 

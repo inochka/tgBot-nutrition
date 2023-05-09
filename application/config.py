@@ -1,1 +1,2 @@
-TOKEN = '??????'
+TOKEN = '6226679318:AAHypKT7bQFLgkwpK7gfcZ4W0WI1TvgzaYc'
+DB_PATH = "tgBot.db"
