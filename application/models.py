@@ -20,6 +20,8 @@ class Meal:
     lipids: int = 0
     carbs: int = 0
 
+    # в перспективе - вводить это на 100 грамм продукта, и далее умножать на массу, поскольку так удобнее
+
     dt: datetime
     # date and time of meal
 
@@ -58,18 +60,12 @@ class Norm:
     # будет работать с бд
 
     def __init__(self, user, cals, proteins, lipids, carbs, pk=0):
-        #self.dt_start = dt_start
-        #self.dt_end = dt_end
-        #self.admissible_vals = adm_vals
         self.cals = cals
         self.proteins = proteins
         self. lipids = lipids
         self.carbs = carbs
         self.user = user
         self.pk = pk
-
-#print(Meal(cals=80))
-
 
 
 

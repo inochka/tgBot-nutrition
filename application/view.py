@@ -128,8 +128,8 @@ class Bot:
 
         @self.bot.message_handler(commands=["meal_add"])
         def meal_add_request_data(message):
-            self.bot.send_message(message.chat.id, "Введите данные о приеме пищи в формате:\n" +
-                                  " ".join(self.meal_output_format[1:]))
+            self.bot.send_message(message.chat.id, "Введите данные о приеме пищи в формате:\n\n" +
+                                  "\n".join(self.meal_output_format[1:]))
             # номер сами не вводим, он генерится автоматически
             self.bot.register_next_step_handler(message, meal_add)
             # в перспективе сделать ввод данных опциональным, с предустановленным сегодняшним днем
@@ -137,14 +137,13 @@ class Bot:
         def meal_add(message):
             try:
                 # проверяем ввод через рег выражение
-                pattern = r'[a-яА-Я\w\-\. ]+ \d+ \d+ \d+ \d+ ' + config.date_pattern + r"$"
+                pattern = r'[a-яА-Я\w\- ]+\n\d+\n\d+\n\d+\n\d+\n' + config.date_pattern
                 if not re.match(re.compile(pattern), message.text):
                     self.bot.send_message(message.chat.id, "Введите корректную информацию!")
                     raise ValueError
 
-                meal_data = message.text.split(" ")
+                meal_data = message.text.split("\n")
 
-                #print(meal_data)
                 # руками добавляем id юзера, добавившего запись
                 new_meal = Meal(user=str(message.from_user.id))
                 # !!! добавить проверку на ошибки при вводе сюда!!
@@ -162,7 +161,6 @@ class Bot:
                 meal_repo.add(new_meal)
                 self.bot.send_message(message.chat.id, "Вы успешно ввели данные о приеме пищи")
             except Exception as e:
-                print(e)
                 self.bot.send_message(message.chat.id, "При вводе данных о приеме пищи возникла ошибка!")
 
         @self.bot.message_handler(commands=["meal_delete"])
@@ -308,6 +306,10 @@ class Bot:
                 date_start = datetime.strptime(date_range[0], '%d-%m-%Y').date()
                 date_end = datetime.strptime(date_range[1], '%d-%m-%Y').date()
 
+                if date_end < date_start:
+                    self.bot.send_message(message.chat.id, "Введите корректный диапазон дат!")
+                    raise ValueError
+
                 if norm_pk < 0:
                     self.bot.send_message(message.chat.id, "Введите корректную информацию!")
                     raise ValueError
@@ -332,7 +334,7 @@ class Bot:
                 data = []
 
                 for date in dates:
-                    data.append(self.meal_repo.get_all({"dt": date.strftime("%d-%m-%Y")}))
+                    data.append(self.meal_repo.get_all({"dt": date.strftime("%d-%m-%Y"), "user": str(message.from_user.id)}))
 
                 # записей больше, чем дат, их нужно суммировать по суткам
                 fields_data = {}
@@ -381,11 +383,11 @@ class Bot:
                                         caption=f'Гистограмма для параметра "{self.meal_translations[field]}"')
 
                     img.close()
-                    os.remove(fig_name)
+                    #os.remove(fig_name)
                     # теперь выводим гистаграммы для каждого параметра
 
             except Exception as e:
-                #print(e)
+                print(e)
                 self.bot.send_message(message.chat.id, "При вводе данных возникла ошибка!")
 
         @self.bot.message_handler(content_types=["text"])

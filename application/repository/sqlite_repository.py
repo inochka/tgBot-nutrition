@@ -90,7 +90,7 @@ class SQLiteRepository(AbstractRepository[T]):
                     if where.get(field) is not None:
                         if i != 0:
                             cond += " AND "
-                            i += 1
+                        i += 1
 
                         cond += "(" + field + " = ?)"
                         values.append(where.get(field))
