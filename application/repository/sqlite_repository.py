@@ -95,12 +95,8 @@ class SQLiteRepository(AbstractRepository[T]):
                         cond += "(" + field + " = ?)"
                         values.append(where.get(field))
 
-
-            # print("SELECT * FROM " + self.table_name + cond + ";")
-            # print(values)
             cur.execute("SELECT * FROM " + self.table_name + cond + ";", values)
             rows = cur.fetchall()
-            # print(rows)
 
         con.close()
 

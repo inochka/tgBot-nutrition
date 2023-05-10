@@ -5,9 +5,13 @@ from application.models import Meal, Norm
 from inspect import get_annotations
 from keyboa import Keyboa
 import prettytable as pt
-from datetime import datetime
+import datetime
+from datetime import datetime, timedelta, time
 import re
-
+import numpy as np
+import matplotlib.pyplot as plt
+from telebot import types
+import os
 
 class Bot:
     TOKEN: str
@@ -42,6 +46,10 @@ class Bot:
         self.norm_repo = norm_repo
         self.meal_output_format = ["N0", "Блюдо", "Калории", "Белки", "Жиры", "Углеводы", "Дата(дд-мм-гг)"]
         self.norm_output_format = ["N0", "Калории Min-Max", "Белки Min-Max", "Жиры Min-Max", "Углеводы Min-Max"]
+
+        # дублируется с meal_output_format, нужно будет убрать
+        self.meal_translations = {"pk": "N0", "name": "Блюдо", "cals": "Калории", "proteins": "Белки",
+                                  "lipids": "Жиры", "carbs": "Углеводы", "dt": "Дата"}
 
         self.meal_help_string = "<b>Пример ввода приема пищи:</b>\n\n" + " ".join(self.meal_output_format[1:]) +\
                                 "\nБиг-мак 200 10 10 10 06-05-2023"
@@ -94,7 +102,7 @@ class Bot:
             actions = {"Добавить ПП": meal_add_request_data, "Удалить ПП": meal_delete_request_data,
                        "Вывести ПП": meals_show, "Добавить норму": norm_add_request_data,
                        "Удалить норму": norm_delete_request_data, "Вывести нормы": norms_show,
-                       "Помощь": bot_help, "Статистика": stats}
+                       "Помощь": bot_help, "Статистика": stats_request_data}
             # была охуевшая ошибка из-за того, что команда help дублировалась аналогичной комадной бота
             if call.data in actions.keys():
                 # вызываем функции по имени в зависимости от введенной команды
@@ -129,11 +137,8 @@ class Bot:
         def meal_add(message):
             try:
                 # проверяем ввод через рег выражение
-                pattern = r"[a-яА-Я\w\s]+ \d+ \d+ \d+ \d+ (?=\d{2}([-])\d{2}\1\d{4}$)(?:0[1-9]|1\d|[2][0-8]|29(?!.02." \
-                          r"(?!(?!(?:[02468][1-35-79]|[13579][0-13-57-9])00)\d{2}(?:[02468][048]|[13579][26])))|" \
-                          r"30(?!.02)|31(?=.(?:0[13578]|10|12))).(?:0[1-9]|1[012])[-]\d{4}$"
-
-                if not re.match(pattern, message.text):
+                pattern = r'[a-яА-Я\w\-\. ]+ \d+ \d+ \d+ \d+ ' + config.date_pattern + r"$"
+                if not re.match(re.compile(pattern), message.text):
                     self.bot.send_message(message.chat.id, "Введите корректную информацию!")
                     raise ValueError
 
@@ -257,8 +262,6 @@ class Bot:
                     if i >= bound:
                         break
                     i += 1
-                    #output_data.append([str(row.pk)] +
-                    #                   [str(field[0]) + " - " + str(field[1]) for field in row.admissible_vals.values()])
 
                     output_data.append([str(row.pk)] + [getattr(row, field) for field in self.norm_fields])
 
@@ -284,8 +287,106 @@ class Bot:
                 self.bot.send_message(message.chat.id, "При удалении данных о норме БЖУ возникла ошибка!")
 
         @self.bot.message_handler(commands=["stats"])
+        def stats_request_data(message):
+            self.bot.send_message(message.chat.id, "Введите порядковый номер нормы, которую вы хотите использовать "
+                                                   "для рассчета статистики выполнения норм БЖУ, а также диапазон дат,"
+                                                   "в котором должны быть учтены записи о приемах пищи. \n\n Используйте"
+                                                   "формат:\n\n N0(порядковый номер нормы числом)\nдд-мм-гггг дд-мм-гггг")
+            self.bot.register_next_step_handler(message, stats)
+
         def stats(message):
-            pass
+            try:
+                pattern = r"\d+\n" + config.date_pattern + r" " + config.date_pattern
+                if not re.match(re.compile(pattern.replace('$', '')), message.text):
+                    self.bot.send_message(message.chat.id, "Введите корректную информацию!")
+                    raise ValueError
+
+                conditions = message.text.split("\n")
+                norm_pk = int(conditions[0])
+                date_range = conditions[1].split(" ")
+
+                date_start = datetime.strptime(date_range[0], '%d-%m-%Y').date()
+                date_end = datetime.strptime(date_range[1], '%d-%m-%Y').date()
+
+                if norm_pk < 0:
+                    self.bot.send_message(message.chat.id, "Введите корректную информацию!")
+                    raise ValueError
+
+                norm = self.norm_repo.get(norm_pk)
+
+                # если pk некорректный
+                if not norm:
+                    self.bot.send_message(message.chat.id, "Введите корректный номер нормы БЖУ!")
+                    raise ValueError
+
+                # можно, конечно, у самой aqlite попросить вывести даты между двумя данными
+                # но мы сделаем более тупое и быстрое, но рабочее решение (чтобы не менять абстр класс репозитория):
+                # выведем все даты между данными и просто сделаем столько запросов, сколько дней
+                # вряд ли при нынешних масштабах эксплуатации бд умрет.. надо будет - переделаем, а пока поживет
+
+
+                # генерируем все даты, с первой по последнюю включительно
+                dates = [date_start + timedelta(days=x)
+                         for x in range((date_end - date_start).days + 1)]
+
+                data = []
+
+                for date in dates:
+                    data.append(self.meal_repo.get_all({"dt": date.strftime("%d-%m-%Y")}))
+
+                # записей больше, чем дат, их нужно суммировать по суткам
+                fields_data = {}
+                fields = list(self.meal_fields.keys())
+                fields.remove("dt")
+                fields.remove("name")
+                # здесь мы даты отдельно рассматриваем, поэтому из списка гистрограмм их убираем
+                # также убираем имя блюда. Мб стоит завести отдельный список отслеживаемых параметров в классе,
+                # ну да пофиг
+
+                for field in fields:
+                    fields_data[field] = []
+
+                for row in data:
+                    # идем по каждой дате и перебираем записи соотв приемов пищи
+                    for field in fields:
+                        # обходим все поля, по которым будем строить гистрограммы
+                        field_data_per_day = [int(getattr(meal, field)) for meal in row]
+                        # добавляем в словарь просуммированные значения по за сутки
+                        fields_data[field].append(sum(field_data_per_day))
+
+                # строим гистрогаммы по каждому из отслеживаемых параметров
+
+                for field in fields:
+
+                    fig, ax = plt.subplots(figsize=(10, 6))
+                    fig.autofmt_xdate()
+                    ax.bar(dates, fields_data[field], width=0.4)
+                    #ax.xaxis_date()
+                    plt.xlabel(self.meal_translations['dt'])
+                    plt.ylabel(self.meal_translations[field])
+                    plt.title(f'Гистограмма для параметра "{self.meal_translations[field]}"')
+                    plt.grid(True)
+
+                    # рисуем нужные целевые показатели. В перспективе еще добавим средние по записям,
+                    # для большей наглядности
+                    goal = [int(el) for el in getattr(norm, field).split("-")]
+                    ax.plot([date_start - timedelta(1), date_end + timedelta(1)], [goal[0], goal[0]], "k--", color="r")
+                    ax.plot([date_start - timedelta(1), date_end + timedelta(1)], [goal[1], goal[1]], "k--", color="r")
+
+                    fig_name = f'images/{field}_{message.from_user.id}.png'
+                    plt.savefig(fig_name)
+
+                    with open(fig_name, 'rb') as img:
+                        self.bot.send_photo(message.chat.id, img,
+                                        caption=f'Гистограмма для параметра "{self.meal_translations[field]}"')
+
+                    img.close()
+                    os.remove(fig_name)
+                    # теперь выводим гистаграммы для каждого параметра
+
+            except Exception as e:
+                #print(e)
+                self.bot.send_message(message.chat.id, "При вводе данных возникла ошибка!")
 
         @self.bot.message_handler(content_types=["text"])
         def not_recognised(message):
