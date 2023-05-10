@@ -370,8 +370,8 @@ class Bot:
                     # рисуем нужные целевые показатели. В перспективе еще добавим средние по записям,
                     # для большей наглядности
                     goal = [int(el) for el in getattr(norm, field).split("-")]
-                    ax.plot([date_start - timedelta(1), date_end + timedelta(1)], [goal[0], goal[0]], "k--", color="r")
-                    ax.plot([date_start - timedelta(1), date_end + timedelta(1)], [goal[1], goal[1]], "k--", color="r")
+                    ax.plot([date_start - timedelta(1), date_end + timedelta(1)], [goal[0], goal[0]], "r--")
+                    ax.plot([date_start - timedelta(1), date_end + timedelta(1)], [goal[1], goal[1]], "r--")
 
                     fig_name = f'images/{field}_{message.from_user.id}.png'
                     plt.savefig(fig_name)
