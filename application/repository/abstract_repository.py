@@ -18,15 +18,6 @@ T = TypeVar('T', bound=Model)
 # в будущем будут отвечать за работу с разными типами моделей
 # именно поэтому нужно тип объекта в аргументе
 class AbstractRepository(ABC, Generic[T]):
-    """
-    Абстрактный репозиторий.
-    Абстрактные методы:
-    add
-    get
-    get_all
-    update
-    delete
-    """
 
     @abstractmethod
     def add(self, obj: T) -> int:
