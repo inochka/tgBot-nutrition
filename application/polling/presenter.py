@@ -1,4 +1,3 @@
-from application.repository.memory_repository import MemoryRepository
 from application.repository.sqlite_repository import SQLiteRepository
 from application.models import Meal,Norm
 from view import Bot

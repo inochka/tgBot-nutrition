@@ -5,13 +5,10 @@ from application.models import Meal, Norm
 from inspect import get_annotations
 from keyboa import Keyboa
 import prettytable as pt
-import datetime
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta
 import re
-import numpy as np
 import matplotlib.pyplot as plt
-from telebot import types
-import os
+
 
 class Bot:
     TOKEN: str
