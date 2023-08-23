@@ -1,7 +1,7 @@
 import telebot
 import config
-from application.repository.abstract_repository import AbstractRepository
-from application.models import Meal, Norm
+from repository.abstract_repository import AbstractRepository
+from models import Meal, Norm
 from inspect import get_annotations
 from keyboa import Keyboa
 import prettytable as pt

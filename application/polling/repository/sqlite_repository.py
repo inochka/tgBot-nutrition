@@ -1,10 +1,10 @@
 from inspect import get_annotations
 import sqlite3
-from application.repository.abstract_repository import AbstractRepository, T
-from application.models import Meal
-from application.models import Norm
+from repository.abstract_repository import AbstractRepository, T
+from models import Meal
+from models import Norm
 from typing import Any
-import application.config as config
+import config as config
 
 
 class SQLiteRepository(AbstractRepository[T]):

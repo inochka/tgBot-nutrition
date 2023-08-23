@@ -1,5 +1,5 @@
-from application.repository.sqlite_repository import SQLiteRepository
-from application.models import Meal,Norm
+from repository.sqlite_repository import SQLiteRepository
+from models import Meal,Norm
 from view import Bot
 import config
 
