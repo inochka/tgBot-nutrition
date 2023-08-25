@@ -1,18 +1,18 @@
 import telebot
 import config
-from application.repository.abstract_repository import AbstractRepository
-from application.models import Meal, Norm
+from repository.abstract_repository import AbstractRepository
+from models import Meal, Norm
 from inspect import get_annotations
 from keyboa import Keyboa
 import prettytable as pt
 from datetime import datetime, timedelta
 import re
 import matplotlib.pyplot as plt
-
+from django_telegrambot.apps import DjangoTelegramBot
 
 class Bot:
     TOKEN: str
-    bot: telebot.TeleBot
+    bot: DjangoTelegramBot
     meal_repo: AbstractRepository
     norms_repo: AbstractRepository
 
@@ -33,12 +33,10 @@ class Bot:
                 "keyboard": "Вывести виртуальную клавиатуру"
                 }
 
-
-
     def __init__(self, TOKEN, meal_repo, norm_repo):
         self.token = TOKEN
         # сразу же парсим в хтмл, чтобы было проще
-        self.bot = telebot.TeleBot(self.token, parse_mode="HTML")
+        self.bot = DjangoTelegramBot.getDispatcher(self.token)
         self.meal_repo = meal_repo
         self.norm_repo = norm_repo
         self.meal_output_format = ["N0", "Блюдо", "Калории", "Белки", "Жиры", "Углеводы", "Дата(дд-мм-гг)"]
@@ -71,7 +69,7 @@ class Bot:
             #print(self.general_help_string)
         f.close()
 
-        @self.bot.message_handler(commands=["start"])
+        #@self.bot.message_handler(commands=["start"])
         # в перспективе можно для каждого юзера сделать свою ветку/таблицу бд
         # тогда нужно создавать/открывать бд по команде старт
         # и удалять по команде енд
@@ -83,7 +81,7 @@ class Bot:
             make_keyboard(message)
 
 
-        @self.bot.message_handler(commands=["keyboard"])
+        #@self.bot.message_handler(commands=["keyboard"])
         def make_keyboard(message):
             menu = [["Добавить ПП", "Удалить ПП", "Вывести ПП"],
                     ["Добавить норму", "Удалить норму", "Вывести нормы"],
@@ -94,7 +92,7 @@ class Bot:
                                                                 "суточная норма калорий и БЖУ")
 
         # обработчик нажатий на клавиатуру
-        @self.bot.callback_query_handler(func=lambda call: True)
+        #@self.bot.callback_query_handler(func=lambda call: True)
         def handle_keyboard(call):
             actions = {"Добавить ПП": meal_add_request_data, "Удалить ПП": meal_delete_request_data,
                        "Вывести ПП": meals_show, "Добавить норму": norm_add_request_data,
@@ -109,7 +107,7 @@ class Bot:
                 # который совпадает с id чата, видимо
                 actions[call.data](call.message)
 
-        @self.bot.message_handler(commands=["bot_help"])
+        #@self.bot.message_handler(commands=["bot_help"])
         def bot_help(message):
             msg = self.general_help_string + "\n\n" + "<b> Список команд </b>\n"
             for key in self.commands.keys():
@@ -123,7 +121,7 @@ class Bot:
         #####     данные о приемах пищи     ###################
 
 
-        @self.bot.message_handler(commands=["meal_add"])
+        #@self.bot.message_handler(commands=["meal_add"])
         def meal_add_request_data(message):
             self.bot.send_message(message.chat.id, "Введите данные о приеме пищи в формате:\n\n" +
                                   "\n".join(self.meal_output_format[1:]))
@@ -131,7 +129,7 @@ class Bot:
             self.bot.register_next_step_handler(message, meal_add)
             # в перспективе сделать ввод данных опциональным, с предустановленным сегодняшним днем
 
-        def meal_add(message):
+        #def meal_add(message):
             try:
                 # проверяем ввод через рег выражение
                 pattern = r'[a-яА-Я\w\- ]+\n\d+\n\d+\n\d+\n\d+\n' + config.date_pattern
@@ -160,7 +158,7 @@ class Bot:
             except Exception as e:
                 self.bot.send_message(message.chat.id, "При вводе данных о приеме пищи возникла ошибка!")
 
-        @self.bot.message_handler(commands=["meal_delete"])
+        #@self.bot.message_handler(commands=["meal_delete"])
         def meal_delete_request_data(message):
             self.bot.send_message(message.chat.id, "Введите порядковый номер записи, которую вы хотите удалить:\n")
             self.bot.register_next_step_handler(message, meal_delete)
@@ -179,7 +177,7 @@ class Bot:
                 self.bot.send_message(message.chat.id, "При удалении данных о приеме пищи возникла ошибка!")
 
 
-        @self.bot.message_handler(commands=["meals_show"])
+        #@self.bot.message_handler(commands=["meals_show"])
         def meals_show(message):
             data = meal_repo.get_all({"user": str(message.from_user.id)})
             # сортируем по дате: от более нового к более старому
@@ -212,14 +210,14 @@ class Bot:
 
         #####     данные о нормах калоража     ###################
 
-        @self.bot.message_handler(commands=["norm_add"])
+        #@self.bot.message_handler(commands=["norm_add"])
         def norm_add_request_data(message):
             self.bot.send_message(message.chat.id, "Введите данные о суточной норме БЖУ в формате:\n\n" +
                                   "\n".join(self.norm_output_format[1:]))
             self.bot.register_next_step_handler(message, norm_add)
             # в перспективе сделать ввод данных опциональным, с предустановленным сегодняшним днем
 
-        def norm_add(message):
+        #def norm_add(message):
             try:
                 # проверяем ввод посредством регулярных выражений
                 pattern = r"\d+-\d+\n\d+-\d+\n\d+-\d+\n\d+-\d+"
@@ -242,7 +240,7 @@ class Bot:
             except:
                 self.bot.send_message(message.chat.id, "При вводе данных о норме БЖУ возникла ошибка!")
 
-        @self.bot.message_handler(commands=["norms_show"])
+        #@self.bot.message_handler(commands=["norms_show"])
         def norms_show(message):
             data = norm_repo.get_all({"user": str(message.from_user.id)})
 
@@ -262,7 +260,7 @@ class Bot:
 
                 self.send_table(message, self.norm_output_format, output_data)
 
-        @self.bot.message_handler(commands=["norm_delete"])
+        #@self.bot.message_handler(commands=["norm_delete"])
         def norm_delete_request_data(message):
             self.bot.send_message(message.chat.id, "Введите порядковый номер записи, которую вы хотите удалить:\n")
             self.bot.register_next_step_handler(message, norm_delete)
@@ -281,7 +279,7 @@ class Bot:
             except:
                 self.bot.send_message(message.chat.id, "При удалении данных о норме БЖУ возникла ошибка!")
 
-        @self.bot.message_handler(commands=["stats"])
+        #@self.bot.message_handler(commands=["stats"])
         def stats_request_data(message):
             self.bot.send_message(message.chat.id, "Введите порядковый номер нормы, которую вы хотите использовать "
                                                    "для рассчета статистики выполнения норм БЖУ, а также диапазон дат,"
@@ -387,7 +385,7 @@ class Bot:
                 print(e)
                 self.bot.send_message(message.chat.id, "При вводе данных возникла ошибка!")
 
-        @self.bot.message_handler(content_types=["text"])
+        #@self.bot.message_handler(content_types=["text"])
         def not_recognised(message):
             self.bot.send_message(message.chat.id, "Извините, команда не распознана.")
 

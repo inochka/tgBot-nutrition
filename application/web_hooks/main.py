@@ -2,11 +2,11 @@
 # Example code for telegrambot.py module
 from telegram.ext import CommandHandler, MessageHandler, Filters
 from django_telegrambot.apps import DjangoTelegramBot
-
+import telebot
+import time
 import logging
-logger = logging.getLogger(__name__)
-
-
+#logger = logging.getLogger(__name__)
+logger = telebot.logger
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
 def start(bot, update):

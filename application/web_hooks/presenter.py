@@ -1,6 +1,6 @@
 from application.repository.sqlite_repository import SQLiteRepository
 from application.models import Meal,Norm
-from view import Bot
+from bot import Bot
 import config
 
 # создаем бд
