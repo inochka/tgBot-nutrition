@@ -1,0 +1,20 @@
+name: CI/CD Runner Check
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-runner:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Test runner
+        run: |
+          echo "Runner is working!"
+          uname -a
+          echo "CI/CD pipeline executed successfully."
